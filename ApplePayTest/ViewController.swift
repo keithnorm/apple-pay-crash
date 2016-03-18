@@ -7,19 +7,45 @@
 //
 
 import UIKit
+import PassKit
 
-class ViewController: UIViewController {
+class ViewController: UIViewController, PKPaymentAuthorizationViewControllerDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view, typically from a nib.
+        let applePayButton = PKPaymentButton(paymentButtonType: .Buy, paymentButtonStyle: .Black)
+        applePayButton.addTarget(self, action: "doApplePay", forControlEvents: .TouchUpInside)
+        applePayButton.translatesAutoresizingMaskIntoConstraints = false
+        self.view.addSubview(applePayButton)
+        
+        self.view.addConstraint(NSLayoutConstraint(item: applePayButton, attribute: .CenterX, relatedBy: .Equal, toItem: self.view, attribute: .CenterX, multiplier: 1.0, constant: 0))
+        self.view.addConstraint(NSLayoutConstraint(item: applePayButton, attribute: .CenterY, relatedBy: .Equal, toItem: self.view, attribute: .CenterY, multiplier: 1.0, constant: 0))
+    }
+    
+    func doApplePay() {
+        let request = PKPaymentRequest()
+        request.merchantIdentifier = "merchant.com.foo.keithnorm"
+        request.merchantCapabilities = PKMerchantCapability.Capability3DS
+        request.countryCode = "US"
+        request.currencyCode = "USD"
+        request.supportedNetworks = [PKPaymentNetworkVisa, PKPaymentNetworkMasterCard, PKPaymentNetworkAmex]
+        request.paymentSummaryItems = [PKPaymentSummaryItem(label: "summary 1", amount: 10.0)]
+        request.requiredShippingAddressFields = PKAddressField.PostalAddress
+        let applePayController = PKPaymentAuthorizationViewController(paymentRequest: request)
+        applePayController.delegate = self
+        presentViewController(applePayController, animated: true, completion: nil)
+    }
+    
+    func paymentAuthorizationViewController(controller: PKPaymentAuthorizationViewController, didAuthorizePayment payment: PKPayment, completion: ((PKPaymentAuthorizationStatus) -> Void)) {
     }
 
-    override func didReceiveMemoryWarning() {
-        super.didReceiveMemoryWarning()
-        // Dispose of any resources that can be recreated.
+    func paymentAuthorizationViewControllerDidFinish(controller: PKPaymentAuthorizationViewController) {
+        controller.dismissViewControllerAnimated(true, completion: nil)
     }
-
-
+    
+    func paymentAuthorizationViewController(controller: PKPaymentAuthorizationViewController, didSelectShippingContact contact: PKContact, completion: (PKPaymentAuthorizationStatus, [PKShippingMethod], [PKPaymentSummaryItem]) -> Void) {
+        completion(.Success, [], [PKPaymentSummaryItem(label: "summary 1", amount: 10.0)])
+    }
 }
+
 
